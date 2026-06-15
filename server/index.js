@@ -1,5 +1,8 @@
-const dotenv = require("dotenv");
-dotenv.config();
+try {
+    require("dotenv").config();
+} catch (error) {
+    console.warn("dotenv is not installed; using environment variables from the host.");
+}
 
 // Prefer public DNS for SRV resolution (works around local DNS/proxy that blocks SRV)
 const dns = require('dns');
