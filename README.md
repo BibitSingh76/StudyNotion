@@ -1,70 +1,141 @@
-# Getting Started with Create React App
+# StudyNotion
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+Clean deployment structure:
 
-## Available Scripts
+```text
+study-notion/
+  README.md
+  client/   # React app for Vercel
+  server/   # Express API for Render
+```
 
-In the project directory, you can run:
+There is no root `package.json` and no `render.yaml`. Deploy each app from its own folder.
 
-### `npm start`
+## Local Setup
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+Install client dependencies:
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+```bash
+cd client
+npm install
+```
 
-### `npm test`
+Install server dependencies:
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+```bash
+cd server
+npm install
+```
 
-### `npm run build`
+Create local env files:
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+```bash
+copy client\.env.example client\.env
+copy server\.env.example server\.env
+```
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+Run the client:
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+```bash
+cd client
+npm start
+```
 
-### `npm run eject`
+Run the server in another terminal:
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+```bash
+cd server
+npm run dev
+```
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+Client: `http://localhost:3000`  
+Server: `http://localhost:4000`
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+## Deploy Backend To Render
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+Create a Render Web Service from this GitHub repo.
 
-## Learn More
+Use these settings:
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+```text
+Root Directory: server
+Runtime: Node
+Build Command: npm ci && npm run build
+Start Command: npm run start
+Health Check Path: /
+Node Version: 22
+```
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+Set these environment variables in Render:
 
-### Code Splitting
+```text
+MONGO_URI
+JWT_SECRET
+CLIENT_URLS
+CLOUDINARY_CLOUD_NAME
+CLOUDINARY_API_KEY
+CLOUDINARY_API_SECRET
+FOLDER_NAME
+MAIL_HOST
+MAIL_PORT
+MAIL_SECURE
+MAIL_USER
+MAIL_PASS
+MAIL_FROM
+RAZORPAY_KEY
+RAZORPAY_SECRET
+```
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+Example:
 
-### Analyzing the Bundle Size
+```text
+CLIENT_URLS=https://your-vercel-app.vercel.app
+```
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+After changing dependencies or environment variables, use Render's "Clear build cache & deploy".
 
-### Making a Progressive Web App
+## Deploy Frontend To Vercel
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+Import this GitHub repo into Vercel.
 
-### Advanced Configuration
+Use these settings:
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+```text
+Framework Preset: Create React App
+Root Directory: client
+Install Command: npm ci
+Build Command: npm run build
+Output Directory: build
+```
 
-### Deployment
+Set these environment variables in Vercel:
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
+```text
+REACT_APP_BASE_URL=https://your-render-service.onrender.com/api/v1
+REACT_APP_RAZORPAY_KEY=rzp_test_your_publishable_key
+```
 
-### `npm run build` fails to minify
+After Vercel gives you the frontend URL, add that URL to Render's `CLIENT_URLS`, then redeploy the backend.
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+## Deploy Order
+
+1. Push this repo to GitHub.
+2. Deploy `server/` to Render.
+3. Copy the Render backend URL.
+4. Deploy `client/` to Vercel with `REACT_APP_BASE_URL` pointing to Render.
+5. Copy the Vercel frontend URL.
+6. Add the Vercel URL to Render `CLIENT_URLS`.
+7. Redeploy Render.
+
+## Gitignore Layout
+
+- `client/.gitignore` ignores frontend dependencies, build output, and client env files.
+- `server/.gitignore` ignores backend dependencies, logs, temporary files, and server env files.
+- Root `.gitignore` only keeps root-level OS/log noise out of Git.
+
+## Important Notes
+
+- Do not commit real `.env` files.
+- Client variables must start with `REACT_APP_`.
+- Server secrets belong only in Render environment variables or `server/.env` locally.
+- The frontend API base URL must include `/api/v1`.

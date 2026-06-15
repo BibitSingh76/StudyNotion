@@ -25,6 +25,7 @@ const userRoutes =require("./routes/User");
 const profileRoutes =require("./routes/Profile");
 const paymentRoutes = require("./routes/Payments");
 const courseRoutes = require("./routes/Course");
+const contactRoutes = require("./routes/Contact");
 
 const database = require("./config/database");
 const cookieParser =require("cookie-parser");
@@ -34,6 +35,14 @@ const {cloudinaryConnect} =require("./config/cloudinary");
 const fileUpload =require("express-fileupload");
 const os = require('os');
 const PORT = process.env.PORT || 4000;
+const allowedOrigins = [
+    "http://localhost:3000",
+    "http://localhost:3001",
+    ...(process.env.CLIENT_URLS || "")
+        .split(",")
+        .map((origin) => origin.trim())
+        .filter(Boolean),
+];
 
 //middlewares
 // Guard against empty JSON bodies that cause body-parser to throw
@@ -73,7 +82,7 @@ app.use((req, res, next) => {
 
 app.use(
   cors({
-    origin: ["http://localhost:3000", "http://localhost:3001"],
+    origin: allowedOrigins,
     credentials: true,
   })
 )
@@ -99,6 +108,7 @@ const startServer = async () => {
         app.use("/api/v1/profile", profileRoutes);
         app.use("/api/v1/course", courseRoutes);
         app.use("/api/v1/payment", paymentRoutes);
+        app.use("/api/v1/reach", contactRoutes);
 
         //default route
         app.get("/", (req, res) => {
