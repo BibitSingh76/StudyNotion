@@ -1,4 +1,10 @@
-const BASE_URL = process.env.REACT_APP_BASE_URL || "http://localhost:4000/api/v1"; // deployed backend base url (fallback to local)
+// Ensure BASE_URL always points to the API root (/api/v1).
+// Accept either a domain-only env (https://api.example.com) or a full API URL
+// (https://api.example.com/api/v1). This normalizes the value so endpoints
+// below become stable.
+const rawBase = process.env.REACT_APP_BASE_URL || "http://localhost:4000";
+const trimmed = rawBase.replace(/\/+$/g, "");
+const BASE_URL = trimmed.endsWith("/api/v1") ? trimmed : trimmed + "/api/v1";
 
 
 // AUTH ENDPOINTS

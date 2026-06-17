@@ -47,11 +47,40 @@ export const apiConnector = (method, url, bodyData, headers, params) => {
     // ignore logging errors
   }
 
-  return axiosInstance({
-    method: `${method}`,
-    url: `${url}`,
-    data: bodyData ? bodyData : null,
-    headers: headers ? headers : null,
-    params: params ? params : null,
-  });
+    // Decide if the provided URL is absolute or relative. For relative URLs
+    // use the configured axios instance (applies baseURL). For absolute URLs
+    // use the default axios so baseURL is not prepended.
+    const isAbsolute = typeof url === "string" && /^(https?:)?\/\//i.test(url);
+
+    // Compute a friendly fullUrl for logs without blindly concatenating baseURL
+    // and url (that produced the doubled-URL artifact in logs).
+    let fullUrl = url;
+    try {
+      const base = axiosInstance.defaults.baseURL || "";
+      if (!isAbsolute) {
+        const b = base.replace(/\/+$/g, "");
+        fullUrl = b + (url && url.startsWith("/") ? url : "/" + url);
+      }
+    } catch (e) {
+      // ignore
+    }
+
+    try {
+      console.log("apiConnector ->", { method, url, bodyData, headers, params, fullUrl });
+    } catch (e) {}
+
+    const requestConfig = {
+      method: `${method}`,
+      url: `${url}`,
+      data: bodyData ? bodyData : null,
+      headers: headers ? headers : null,
+      params: params ? params : null,
+      withCredentials: true,
+    };
+
+    if (isAbsolute) {
+      return axios(requestConfig);
+    }
+
+    return axiosInstance(requestConfig);
 };

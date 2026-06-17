@@ -38,14 +38,19 @@ const {cloudinaryConnect} =require("./config/cloudinary");
 const fileUpload =require("express-fileupload");
 const os = require('os');
 const PORT = process.env.PORT || 4000;
-const allowedOrigins = [
-    "http://localhost:3000",
-    "http://localhost:3001",
-    ...(process.env.CLIENT_URLS || "")
-        .split(",")
-        .map((origin) => origin.trim())
-        .filter(Boolean),
-];
+// Build allowed origins from environment variables.
+// Support a single `CLIENT_URL` or a comma-separated `CLIENT_URLS`.
+const defaultLocalOrigins = ["http://localhost:3000", "http://localhost:3001"];
+const envClientUrl = (process.env.CLIENT_URL || "").trim();
+const envClientUrls = (process.env.CLIENT_URLS || "")
+    .split(",")
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+const allowedOrigins = Array.from(new Set([
+    ...defaultLocalOrigins,
+    ...(envClientUrl ? [envClientUrl] : []),
+    ...envClientUrls,
+]));
 
 //middlewares
 // Guard against empty JSON bodies that cause body-parser to throw
@@ -83,12 +88,26 @@ app.use((req, res, next) => {
     next();
 });
 
+// Use a custom origin function so we return the appropriate
+// Access-Control-Allow-Origin header only for allowed origins. Place this
+// middleware early so preflight OPTIONS are handled properly.
 app.use(
-  cors({
-    origin: allowedOrigins,
-    credentials: true,
-  })
-)
+    cors({
+        origin: (origin, callback) => {
+            // Allow requests with no origin (curl, server-to-server)
+            if (!origin) return callback(null, true);
+            if (allowedOrigins.includes(origin)) return callback(null, true);
+            return callback(new Error(`CORS policy: origin ${origin} not allowed`));
+        },
+        credentials: true,
+        methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        allowedHeaders: ["Content-Type", "Authorization", "Accept"],
+    })
+);
+
+// Enable explicit handling of preflight for all routes
+// Use '/*' instead of '*' to avoid path-to-regexp parsing error
+app.options("/*", cors());
 
 app.use(
     fileUpload({
