@@ -39,12 +39,30 @@ axiosInstance.interceptors.request.use(
 axiosInstance.interceptors.response.use(
   (res) => res,
   (err) => {
-    // Provide clearer network error logging for easier debugging
-    console.error("API Response Error ->", {
+    // Provide clearer network error logging for easier debugging. Compute
+    // a safe fullUrl for both absolute and relative requests instead of
+    // concatenating baseURL + url which can produce duplicates.
+    let fullUrl;
+    try {
+      const cfg = err?.config || {};
+      const u = cfg.url || '';
+      const isAbsolute = typeof u === 'string' && /^(https?:)?\/\//i.test(u);
+      if (isAbsolute) {
+        fullUrl = u;
+      } else {
+        const base = cfg.baseURL || axiosInstance.defaults.baseURL || '';
+        const b = (base || '').replace(/\/+$|\s+/g, '');
+        fullUrl = b + (u && u.startsWith('/') ? u : '/' + u);
+      }
+    } catch (e) {
+      fullUrl = undefined;
+    }
+
+    console.error('API Response Error ->', {
       message: err?.message,
       isAxiosError: err?.isAxiosError,
       status: err?.response?.status,
-      url: err?.config?.baseURL + err?.config?.url,
+      url: fullUrl,
     });
     return Promise.reject(err);
   }

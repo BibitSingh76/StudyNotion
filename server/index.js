@@ -91,14 +91,14 @@ app.use((req, res, next) => {
 // Use a custom origin function so we return the appropriate
 // Access-Control-Allow-Origin header only for allowed origins. Place this
 // middleware early so preflight OPTIONS are handled properly.
+// Configure CORS using an explicit allowed-origins list. Passing the
+// array directly to the `origin` option lets the `cors` package handle
+// matching and response header generation. Avoid throwing from the
+// origin callback because that can result in a 500 response on
+// preflight requests.
 app.use(
     cors({
-        origin: (origin, callback) => {
-            // Allow requests with no origin (curl, server-to-server)
-            if (!origin) return callback(null, true);
-            if (allowedOrigins.includes(origin)) return callback(null, true);
-            return callback(new Error(`CORS policy: origin ${origin} not allowed`));
-        },
+        origin: allowedOrigins,
         credentials: true,
         methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
         allowedHeaders: ["Content-Type", "Authorization", "Accept"],
@@ -142,10 +142,19 @@ const startServer = async () => {
             console.log(`app is running at ${PORT}`)
         })
     } catch (error) {
-        console.error('Failed to start server:', error.message || error);
+        console.error('Failed to start server:', error && (error.stack || error.message) ? (error.stack || error.message) : error);
         process.exit(1);
     }
 };
 
 startServer();
+
+// Global error handler (returns JSON for unhandled errors). Keep this
+// after route registration so thrown errors bubble here and get logged
+// with stack traces in production logs.
+app.use((err, req, res, next) => {
+    console.error('Unhandled error:', err && (err.stack || err.message) ? (err.stack || err.message) : err);
+    if (res.headersSent) return next(err);
+    res.status(err && err.status ? err.status : 500).json({ success: false, message: err && err.message ? err.message : 'Internal server error' });
+});
 
