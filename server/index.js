@@ -105,9 +105,9 @@ app.use(
     })
 );
 
-// Enable explicit handling of preflight for all routes
-// Use '/*' instead of '*' to avoid path-to-regexp parsing error
-app.options("/*", cors());
+// CORS middleware above already handles preflight requests; explicit
+// app.options() caused path-to-regexp errors in this environment and
+// is therefore removed.
 
 app.use(
     fileUpload({
