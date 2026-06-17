@@ -13,7 +13,18 @@ export const axiosInstance = axios.create({
 axiosInstance.interceptors.request.use(
   (req) => {
     try {
-      console.log("API Request ->", req.method, req.baseURL + req.url);
+      // Compute a friendly full URL for logging that works for both
+      // absolute and relative request URLs without duplicating baseURL.
+      let fullUrl = req.url;
+      try {
+        const base = req.baseURL || axiosInstance.defaults.baseURL || "";
+        const isAbsolute = typeof req.url === 'string' && /^(https?:)?\/\//i.test(req.url);
+        if (!isAbsolute && base) {
+          const b = base.replace(/\/+$|\s+/g, "");
+          fullUrl = b + (req.url && req.url.startsWith("/") ? req.url : "/" + req.url);
+        }
+      } catch (e) {}
+      console.log("API Request ->", req.method, fullUrl);
     } catch (e) {
       // ignore
     }
