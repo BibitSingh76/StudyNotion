@@ -47,11 +47,13 @@ exports.sendOTP = async (req, res) => {
        const otpPayload = {email, otp};
 
        //create an entry for OTP
+       console.log('Saving OTP entry for:', email);
        const otpBody = await OTP.create(otpPayload);
-       console.log(otpBody);
+       console.log('OTP entry saved:', otpBody._id);
 
        // send otp email
        try {
+           console.log('Sending OTP email to:', email);
            const mailRes = await mailSender(
                email,
                "StudyNotion - Your OTP",
