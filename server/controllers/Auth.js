@@ -68,7 +68,11 @@ exports.sendOTP = async (req, res) => {
            } catch (delErr) {
                console.error('Failed to delete OTP after mail failure:', delErr && delErr.message);
            }
-           return res.status(500).json({ success: false, message: 'Failed to send OTP email' });
+           return res.status(500).json({
+               success: false,
+               message: 'Failed to send OTP email',
+               error: mailError && mailError.message ? mailError.message : String(mailError),
+           });
        }
        //return response successfully
        res.status(200).json({
