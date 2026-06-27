@@ -43,35 +43,47 @@ const sendWithBrevoApi = async (email, title, body) => {
     return data;
 };
 
+const sendWithSmtp = async (email, title, body) => {
+    const transporter = nodemailer.createTransport({
+        host: process.env.MAIL_HOST,
+        port: process.env.MAIL_PORT ? parseInt(process.env.MAIL_PORT, 10) : 587,
+        secure: process.env.MAIL_SECURE === 'true',
+        connectionTimeout: 10000,
+        greetingTimeout: 10000,
+        socketTimeout: 15000,
+        auth: {
+            user: process.env.MAIL_USER,
+            pass: process.env.MAIL_PASS,
+        },
+    });
+
+    const info = await transporter.sendMail({
+        from: process.env.MAIL_FROM || `StudyNotion <${process.env.MAIL_USER || 'no-reply@example.com'}>`,
+        to: email,
+        subject: title,
+        html: body,
+    });
+
+    console.log('Mail sent with SMTP:', info.messageId);
+    return info;
+};
+
 // mailSender function
 const mailSender = async (email, title, body) => {
     try {
         if (process.env.BREVO_API_KEY) {
-            return await sendWithBrevoApi(email, title, body);
+            try {
+                return await sendWithBrevoApi(email, title, body);
+            } catch (brevoError) {
+                console.warn('Brevo mail send failed, falling back to SMTP:', brevoError.message);
+            }
         }
 
-        // create transporter
-        const transporter = nodemailer.createTransport({
-            host: process.env.MAIL_HOST,
-            port: process.env.MAIL_PORT ? parseInt(process.env.MAIL_PORT) : 587,
-            secure: process.env.MAIL_SECURE === 'true',
-            connectionTimeout: 10000,
-            greetingTimeout: 10000,
-            socketTimeout: 15000,
-            auth: {
-                user: process.env.MAIL_USER,
-                pass: process.env.MAIL_PASS,
-            },
-        });
+        if (!process.env.MAIL_HOST || !process.env.MAIL_USER || !process.env.MAIL_PASS) {
+            throw new Error('Mail service is not configured');
+        }
 
-        const info = await transporter.sendMail({
-            from: process.env.MAIL_FROM || 'StudyNotion <no-reply@example.com>',
-            to: email,
-            subject: title,
-            html: body,
-        });
-        console.log('Mail sent:', info.messageId);
-        return info;
+        return await sendWithSmtp(email, title, body);
     } catch (error) {
         console.log('mailSender error:', error.message);
         throw error;
